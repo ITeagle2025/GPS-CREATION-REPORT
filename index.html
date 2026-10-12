@@ -120,7 +120,31 @@ tr:hover td{background:#f5fafb}
   .brand-logos{width:100%}
 }
 @media(max-width:500px){.filter-grid,.limit-grid,.kpis,.info-grid{grid-template-columns:1fr}.brand-logos img{max-width:42vw}}
-.dates-cell{min-width:190px;white-space:normal;line-height:1.5;color:#334e68}\n</style>
+.dates-cell{min-width:190px;white-space:normal;line-height:1.5;color:#334e68}\n
+/* Revision: ranking, charts, low-distance monitoring, parent comparisons */
+.chart-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:14px 0}
+.chart-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;min-width:0}
+.chart-card h3{margin:0 0 10px;font-size:13px;color:var(--adphc-dark)}
+.chart-card svg{display:block;width:100%;height:auto;overflow:visible}
+.rank-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:14px 0}
+.rank-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;min-width:0}
+.rank-card h3{font-size:13px;margin:0 0 10px;color:var(--adphc-dark)}
+.rank-card .table-wrap{max-height:380px}
+.small-pill{display:inline-block;border-radius:999px;background:#eef5fa;color:#075985;padding:3px 7px;font-size:10px;font-weight:800}
+.compare-ok{color:var(--good);font-weight:800}.compare-diff{color:var(--bad);font-weight:800}
+.settings-note{font-size:11px;color:var(--muted);line-height:1.5;margin-top:8px}
+.export-modal{position:fixed;inset:0;z-index:120;background:rgba(14,35,52,.48);display:flex;align-items:center;justify-content:center;padding:18px}
+.export-dialog{width:min(520px,100%);background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 18px 55px rgba(0,0,0,.22);padding:22px}
+.export-dialog h2{font-size:18px;color:var(--adphc-dark);margin:0 0 6px}
+.export-dialog p{font-size:12px;color:var(--muted);margin:0 0 16px;line-height:1.5}
+.export-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 18px}
+.export-option{display:flex;align-items:center;gap:9px;border:1px solid var(--border);border-radius:8px;padding:11px;font-size:12px;font-weight:700}
+.export-option input{accent-color:var(--adphc);width:16px;height:16px}
+.export-dialog-actions{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+@media(max-width:500px){.export-options{grid-template-columns:1fr}}
+@media(max-width:1000px){.chart-grid{grid-template-columns:1fr}.rank-grid{grid-template-columns:1fr}}
+
+</style>
 </head>
 <body>
 <div class="app">
@@ -181,15 +205,19 @@ tr:hover td{background:#f5fafb}
       <div class="limit-grid">
         <div class="field">
           <div class="toggleline"><input id="speedLimitOn" type="checkbox" checked><label for="speedLimitOn">Daily Max Speed Limit</label></div>
-          <input id="speedLimit" type="number" min="0" step="1" value="125">
+          <input id="speedLimit" type="number" min="0" step="1" value="140">
         </div>
         <div class="field">
           <div class="toggleline"><input id="idleLimitOn" type="checkbox" checked><label for="idleLimitOn">Daily Idling Limit (minutes)</label></div>
-          <input id="idleLimit" type="number" min="0" step="1" value="30">
+          <input id="idleLimit" type="number" min="0" step="1" value="60">
         </div>
         <div class="field">
-          <div class="toggleline"><input id="distanceLimitOn" type="checkbox" checked><label for="distanceLimitOn">Daily Distance Limit (km)</label></div>
+          <div class="toggleline"><input id="distanceLimitOn" type="checkbox"><label for="distanceLimitOn">Daily Distance Limit (km)</label></div>
           <input id="distanceLimit" type="number" min="0" step="1" value="150">
+        </div>
+        <div class="field">
+          <div class="toggleline"><input id="lowDistanceOn" type="checkbox"><label for="lowDistanceOn">Low Distance Threshold (km)</label></div>
+          <input id="lowDistanceLimit" type="number" min="0" step="1" value="20">
         </div>
         <div class="field">
           <label>Violation Rule</label>
@@ -199,7 +227,7 @@ tr:hover td{background:#f5fafb}
           </select>
         </div>
       </div>
-      <div class="small-note">All metric filters are applied to <b>daily totals per Grouping + Date</b>. Actual trip rows (for example 1.1, 1.2) are used only to calculate those daily totals. Group summary rows (for example 1, 2, 3) are excluded to prevent double-counting. Daily date is taken from <b>Beginning</b>.</div>
+      <div class="small-note">Daily filters are applied per Grouping + Beginning date. Child trip rows (for example 1.1, 1.2) drive operational totals. Parent summary rows (for example 1, 2, 3) are compared separately and never added to child-trip totals. Speed, high-distance, idling and low-distance thresholds are configurable below.</div>
     </div>
   </section>
 
@@ -207,6 +235,8 @@ tr:hover td{background:#f5fafb}
     <button class="tab active" data-tab="dashboard">Dashboard</button>
     <button class="tab" data-tab="daily">Daily Summary</button>
     <button class="tab" data-tab="groups">Group Summary</button>
+    <button class="tab" data-tab="rankings">Trip & Daily Rankings</button>
+    <button class="tab" data-tab="comparison">Parent Comparison</button>
     <button class="tab" data-tab="table">Daily Results</button>
     <button class="tab" data-tab="instructions">Instructions</button>
   </div>
@@ -220,6 +250,17 @@ tr:hover td{background:#f5fafb}
       <div class="kpi"><div class="label">Total Distance</div><div id="kDistance" class="value">0</div><div class="sub">km</div></div>
       <div class="kpi bad"><div class="label">Daily Violations</div><div id="kViolations" class="value">0</div><div class="sub">all violation flags</div></div>
       <div class="kpi"><div class="label">Filtered Days</div><div id="kDays" class="value">0</div><div class="sub">unique group-days</div></div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-card"><h3>Highest Daily Speed (km/h)</h3><div id="speedChart"></div></div>
+      <div class="chart-card"><h3>Daily Idling (hours)</h3><div id="idleChart"></div></div>
+      <div class="chart-card"><h3>Daily Distance (km)</h3><div id="distanceChart"></div></div>
+    </div>
+    <div class="rank-grid">
+      <div class="rank-card"><h3>Top Individual Trips by Maximum Speed</h3><div class="table-wrap"><table id="topTripSpeed"></table></div></div>
+      <div class="rank-card"><h3>Top Individual Trips by Idling</h3><div class="table-wrap"><table id="topTripIdle"></table></div></div>
+      <div class="rank-card"><h3>Top Individual Trips by Distance</h3><div class="table-wrap"><table id="topTripDistance"></table></div></div>
+      <div class="rank-card"><h3>Top Daily Results by Distance</h3><div class="table-wrap"><table id="topDailyDistance"></table></div></div>
     </div>
     <div class="section">
       <div class="section-head"><h2>Daily Violation Preview</h2><span>Filtered results</span></div>
@@ -241,6 +282,28 @@ tr:hover td{background:#f5fafb}
         One row per unique <b>Grouping</b>. The Dates column lists every unique Beginning date/time for that Grouping. Days = the number of unique dates. Average Idling / Day and Average Distance / Day are calculated from the group totals divided by the number of unique days. Highest Speed is the highest daily speed, and Speed Violation Days counts days where the daily speed exceeded the configured limit.
       </div>
       <div class="table-wrap"><table id="groupTable"></table></div>
+    </div>
+  </section>
+
+  <section id="rankings" class="panel">
+    <div class="section"><div class="section-head"><h2>Trip and Daily Rankings</h2><span>Highest values first</span></div>
+      <div class="rank-grid">
+        <div class="rank-card"><h3>Individual Trips — Speed</h3><div class="table-wrap"><table id="rankSpeed"></table></div></div>
+        <div class="rank-card"><h3>Daily Results — Speed</h3><div class="table-wrap"><table id="rankDailySpeed"></table></div></div>
+        <div class="rank-card"><h3>Individual Trips — Idling</h3><div class="table-wrap"><table id="rankIdle"></table></div></div>
+        <div class="rank-card"><h3>Daily Results — Idling</h3><div class="table-wrap"><table id="rankDailyIdle"></table></div></div>
+        <div class="rank-card"><h3>Individual Trips — Distance</h3><div class="table-wrap"><table id="rankDistance"></table></div></div>
+        <div class="rank-card"><h3>Daily Results — Distance</h3><div class="table-wrap"><table id="rankDailyDistance"></table></div></div>
+      </div>
+      <div class="section-head"><h2>Low-Distance Flags</h2><span>Below configured threshold</span></div>
+      <div class="table-wrap"><table id="lowDistanceTable"></table></div>
+    </div>
+  </section>
+
+  <section id="comparison" class="panel">
+    <div class="section"><div class="section-head"><h2>Parent Summary vs Child Trips</h2><span id="comparisonCount"></span></div>
+      <div style="padding:10px 14px;color:#667887;font-size:11px;border-bottom:1px solid var(--border)">Parent summary rows are validation records only. They are never included in operational totals. Every non-zero difference is flagged; no rounding tolerance is applied.</div>
+      <div class="table-wrap"><table id="comparisonTable"></table></div>
     </div>
   </section>
 
@@ -269,11 +332,11 @@ tr:hover td{background:#f5fafb}
         </div>
         <div class="info-card">
           <h3>Group summary</h3>
-          <p>Group Summary shows Days, Total Idling, Average Idling / Day, Total Distance, Average Distance / Day, Highest Speed and Speed Violation Days. It does not calculate an average speed.</p>
+          <p>Group Summary shows unique reporting days, total and average daily idling/distance, highest speed, and violation days. Dashboard charts and rankings show both trip-level and daily-level results.</p>
         </div>
         <div class="info-card">
           <h3>Export</h3>
-          <p>Export creates a workbook with Filtered Data, Daily Summary, Group Summary and Settings sheets. The filtered source rows receive additional daily metric and violation columns.</p>
+          <p>Choose which worksheets to export. Data, daily results and group summaries are sorted from highest speed to lowest speed. Parent summaries are compared with child-trip totals but never double-counted.</p>
         </div>
       </div>
     </div>
@@ -286,6 +349,22 @@ tr:hover td{background:#f5fafb}
 </main>
 </div>
 <div id="toast" class="toast hidden"></div>
+<div id="exportModal" class="export-modal hidden" role="dialog" aria-modal="true" aria-labelledby="exportTitle">
+  <div class="export-dialog">
+    <h2 id="exportTitle">Choose Excel worksheets</h2>
+    <p>Select one or more worksheets to include in the exported Excel file. The workbook data sheets will be sorted by highest speed first where a speed field is available.</p>
+    <label class="export-option" style="margin-bottom:12px"><input id="exportSelectAll" type="checkbox" checked> Select all worksheets</label>
+    <div class="export-options">
+      <label class="export-option"><input class="export-sheet" type="checkbox" value="Filtered Data" checked> Filtered Data</label>
+      <label class="export-option"><input class="export-sheet" type="checkbox" value="Daily Summary" checked> Daily Summary</label>
+      <label class="export-option"><input class="export-sheet" type="checkbox" value="Group Summary" checked> Group Summary</label>
+      <label class="export-option"><input class="export-sheet" type="checkbox" value="Parent Comparison" checked> Parent Comparison</label>
+      <label class="export-option"><input class="export-sheet" type="checkbox" value="Low Distance Flags" checked> Low Distance Flags</label>
+      <label class="export-option"><input class="export-sheet" type="checkbox" value="Settings" checked> Settings</label>
+    </div>
+    <div class="export-dialog-actions"><button id="cancelExport">Cancel</button><button id="confirmExport" class="primary">Export selected sheets</button></div>
+  </div>
+</div>
 
 <script>
 const REQUIRED = ["Grouping","Beginning","Idling","Total Distance","Max. speed"];
@@ -293,7 +372,7 @@ const OPS = [
   ["","No filter"], [">","Greater than"], [">=","Greater than or equal"], ["<","Less than"],
   ["<=","Less than or equal"], ["=","Equal to"]
 ];
-let headers=[], allRows=[], filteredRows=[], dailyRows=[], groupRows=[], sourceName="";
+let headers=[], allRows=[], parentRows=[], filteredRows=[], dailyRows=[], groupRows=[], comparisonRows=[], lowDistanceRows=[], sourceName="";
 
 const $=id=>document.getElementById(id);
 ["speedOp","idleOp","distOp"].forEach(id=>{
@@ -363,14 +442,10 @@ function normalizeRows(raw){
   headers=keys;
   const missing=REQUIRED.filter(h=>!keys.includes(h));
   if(missing.length) throw new Error("Missing required headers: "+missing.join(", "));
-  return raw.filter(r=>isDetailRow(r["№"])).map((r,i)=>({
-    ...r,
-    __index:i,
-    __date:dateKey(r["Beginning"]),
-    __idleSec:durationSeconds(r["Idling"]),
-    __distance:num(r["Total Distance"]),
-    __speed:num(r["Max. speed"])
-  }));
+  const enrich=(r,i)=>({...r,__index:i,__date:dateKey(r["Beginning"]),__idleSec:durationSeconds(r["Idling"]),__distance:num(r["Total Distance"]),__speed:num(r["Max. speed"]),__number:String(r["№"]??"").trim()});
+  const enriched=raw.map(enrich);
+  parentRows=enriched.filter(r=>/^\d+$/.test(r.__number));
+  return enriched.filter(r=>isDetailRow(r["№"]));
 }
 function loadWorkbook(file){
   if(typeof XLSX==="undefined"){ toast("Excel library could not load. Internet access is required to load SheetJS.",true); return; }
@@ -475,6 +550,82 @@ function buildSummariesFromAllowed(allowed){
     g.dailyRows.push(d);
   }
   groupRows=[...gm.values()].sort((a,b)=>b.Distance-a.Distance);
+  // Trip/day low-distance flags are separate from the existing high daily-distance limit.
+  const lowOn=$("lowDistanceOn").checked, lowLimit=Number($("lowDistanceLimit").value);
+  lowDistanceRows=[];
+  if(lowOn && isFinite(lowLimit)){
+    for(const r of filteredRows){ if(r.__distance<lowLimit) lowDistanceRows.push({Level:"Trip",Grouping:String(r["Grouping"]||""),Date:r.__date,Trip:r["№"],Distance:r.__distance,Threshold:lowLimit}); }
+    for(const d of dailyRows){ if(d.Distance<lowLimit) lowDistanceRows.push({Level:"Daily",Grouping:d.Grouping,Date:d.Date,Trip:"—",Distance:d.Distance,Threshold:lowLimit}); }
+  }
+  buildParentComparisons();
+}
+function buildParentComparisons(){
+  const from=$("dateFrom").value,to=$("dateTo").value,selectedGroup=$("groupFilter").value;
+  const visibleGroups=new Set(dailyRows.map(d=>d.Grouping));
+  const childByRoot=new Map();
+  for(const r of allRows){
+    const group=String(r["Grouping"]||"").trim();
+    if(!visibleGroups.has(group) || (selectedGroup && group!==selectedGroup) || (from && r.__date<from) || (to && r.__date>to)) continue;
+    const root=String(r.__number).split(".")[0], key=group+"|||"+root;
+    if(!childByRoot.has(key))childByRoot.set(key,[]);
+    childByRoot.get(key).push(r);
+  }
+  comparisonRows=[];
+  for(const p of parentRows){
+    const group=String(p["Grouping"]||"").trim();
+    if(!visibleGroups.has(group) || (selectedGroup && group!==selectedGroup) || (from && p.__date<from) || (to && p.__date>to)) continue;
+    const key=group+"|||"+p.__number, children=childByRoot.get(key)||[];
+    if(!children.length){ comparisonRows.push({Grouping:group,ParentNo:p.__number,Metric:"Child rows",ParentValue:"Present",ChildValue:"Not found",Difference:"",Status:"UNMATCHED"}); continue; }
+    const metrics=[
+      {name:"Total Distance (km)",parent:p.__distance,child:children.reduce((a,r)=>a+r.__distance,0)},
+      {name:"Idling (hh:mm:ss)",parent:p.__idleSec,child:children.reduce((a,r)=>a+r.__idleSec,0),duration:true},
+      {name:"Maximum Speed (km/h)",parent:p.__speed,child:Math.max(...children.map(r=>r.__speed))}
+    ];
+    for(const m of metrics){
+      const diff=m.parent-m.child, equal=diff===0;
+      comparisonRows.push({Grouping:group,ParentNo:p.__number,Metric:m.name,ParentValue:m.duration?fmtDuration(m.parent):m.parent,ChildValue:m.duration?fmtDuration(m.child):m.child,Difference:m.duration?fmtDuration(Math.abs(diff)):(Math.abs(diff)).toLocaleString(undefined,{maximumFractionDigits:4}),Status:equal?"MATCH":"DIFFERENCE",__difference:diff});
+    }
+  }
+}
+function svgBarChart(target,items,valueFn,formatFn){
+  const el=$(target); if(!items.length){el.innerHTML='<div class="empty">No matching records</div>';return;}
+  const data=items.slice(0,7), max=Math.max(1,...data.map(valueFn)), w=340, left=104, right=44, top=8, barH=23, gap=11, h=top+data.length*(barH+gap)+4, plotW=w-left-right;
+  let out=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Ranked bar chart">`;
+  data.forEach((d,i)=>{const y=top+i*(barH+gap), val=Math.max(0,valueFn(d)), bw=plotW*val/max, label=String(d.Grouping||""); const short=label.length>16?label.slice(0,15)+"…":label;
+    out+=`<text x="${left-7}" y="${y+15}" text-anchor="end" font-size="9" fill="#526577">${escapeHtml(short)}</text><rect x="${left}" y="${y}" width="${Math.max(1,bw)}" height="${barH}" rx="4" fill="#0787a5"/><text x="${Math.min(w-right+2,left+bw+5)}" y="${y+15}" font-size="9" fill="#17324d">${escapeHtml(formatFn(val))}</text>`;
+  }); out+='</svg>';el.innerHTML=out;
+}
+function renderRankTable(id,rows,cols){
+  const t=$(id), head='<thead><tr>'+cols.map(c=>`<th>${escapeHtml(c.label)}</th>`).join('')+'</tr></thead>';
+  if(!rows.length){t.innerHTML=head+'<tbody><tr><td colspan="'+cols.length+'" class="empty">No matching records</td></tr></tbody>';return;}
+  t.innerHTML=head+'<tbody>'+rows.slice(0,100).map(r=>'<tr>'+cols.map(c=>`<td>${escapeHtml(c.format?c.format(r[c.key],r):r[c.key]??"")}</td>`).join('')+'</tr>').join('')+'</tbody>';
+}
+function renderRankings(){
+  const tripSpeed=[...filteredRows].sort((a,b)=>b.__speed-a.__speed), tripIdle=[...filteredRows].sort((a,b)=>b.__idleSec-a.__idleSec), tripDist=[...filteredRows].sort((a,b)=>b.__distance-a.__distance);
+  const daySpeed=[...dailyRows].sort((a,b)=>b.MaxSpeed-a.MaxSpeed), dayIdle=[...dailyRows].sort((a,b)=>b.IdlingSec-a.IdlingSec), dayDist=[...dailyRows].sort((a,b)=>b.Distance-a.Distance);
+  const cTrip=[{key:"Grouping",label:"Grouping"},{key:"__date",label:"Date",format:v=>displayDate(v)},{key:"№",label:"Trip"}];
+  renderRankTable("topTripSpeed",tripSpeed.slice(0,10),[...cTrip,{key:"__speed",label:"Speed",format:v=>`${v} km/h`}]);
+  renderRankTable("topTripIdle",tripIdle.slice(0,10),[...cTrip,{key:"__idleSec",label:"Idling",format:v=>fmtDuration(v)}]);
+  renderRankTable("topTripDistance",tripDist.slice(0,10),[...cTrip,{key:"__distance",label:"Distance",format:v=>`${Number(v).toLocaleString(undefined,{maximumFractionDigits:1})} km`}]);
+  renderRankTable("topDailyDistance",dayDist.slice(0,10),[{key:"Grouping",label:"Grouping"},{key:"Date",label:"Date",format:v=>displayDate(v)},{key:"Distance",label:"Distance",format:v=>`${v.toLocaleString(undefined,{maximumFractionDigits:1})} km`}]);
+  renderRankTable("rankSpeed",tripSpeed,[...cTrip,{key:"__speed",label:"Max Speed",format:v=>`${v} km/h`}]);
+  renderRankTable("rankDailySpeed",daySpeed,[{key:"Grouping",label:"Grouping"},{key:"Date",label:"Date",format:v=>displayDate(v)},{key:"MaxSpeed",label:"Daily Max Speed",format:v=>`${v} km/h`}]);
+  renderRankTable("rankIdle",tripIdle,[...cTrip,{key:"__idleSec",label:"Idling",format:v=>fmtDuration(v)}]);
+  renderRankTable("rankDailyIdle",dayIdle,[{key:"Grouping",label:"Grouping"},{key:"Date",label:"Date",format:v=>displayDate(v)},{key:"IdlingSec",label:"Total Idling",format:v=>fmtDuration(v)}]);
+  renderRankTable("rankDistance",tripDist,[...cTrip,{key:"__distance",label:"Distance",format:v=>`${Number(v).toLocaleString(undefined,{maximumFractionDigits:1})} km`}]);
+  renderRankTable("rankDailyDistance",dayDist,[{key:"Grouping",label:"Grouping"},{key:"Date",label:"Date",format:v=>displayDate(v)},{key:"Distance",label:"Total Distance",format:v=>`${v.toLocaleString(undefined,{maximumFractionDigits:1})} km`}]);
+  renderRankTable("lowDistanceTable",lowDistanceRows,[{key:"Level",label:"Level"},{key:"Grouping",label:"Grouping"},{key:"Date",label:"Date",format:v=>displayDate(v)},{key:"Trip",label:"Trip"},{key:"Distance",label:"Distance (km)"},{key:"Threshold",label:"Threshold (km)"}]);
+  const speedChart=[...dailyRows].sort((a,b)=>b.MaxSpeed-a.MaxSpeed), idleChart=[...dailyRows].sort((a,b)=>b.IdlingSec-a.IdlingSec), distanceChart=[...dailyRows].sort((a,b)=>b.Distance-a.Distance);
+  svgBarChart("speedChart",speedChart,d=>d.MaxSpeed,v=>v.toLocaleString(undefined,{maximumFractionDigits:1}));
+  svgBarChart("idleChart",idleChart,d=>d.IdlingSec/3600,v=>(v).toLocaleString(undefined,{maximumFractionDigits:1}));
+  svgBarChart("distanceChart",distanceChart,d=>d.Distance,v=>v.toLocaleString(undefined,{maximumFractionDigits:1}));
+}
+function renderComparison(){
+  const t=$("comparisonTable"); const cols=["Grouping","ParentNo","Metric","ParentValue","ChildValue","Difference","Status"];
+  const head='<thead><tr>'+cols.map(c=>`<th>${escapeHtml(({Grouping:"Grouping",ParentNo:"Parent №",Metric:"Metric",ParentValue:"Parent Value",ChildValue:"Child-Trip Value",Difference:"Absolute Difference",Status:"Status"})[c])}</th>`).join('')+'</tr></thead>';
+  if(!comparisonRows.length){t.innerHTML=head+'<tbody><tr><td colspan="7" class="empty">No parent summary rows found for the selected groups/dates</td></tr></tbody>'; $("comparisonCount").textContent="0 comparisons";return;}
+  t.innerHTML=head+'<tbody>'+comparisonRows.map(r=>`<tr><td>${escapeHtml(r.Grouping)}</td><td>${escapeHtml(r.ParentNo)}</td><td>${escapeHtml(r.Metric)}</td><td>${escapeHtml(r.ParentValue)}</td><td>${escapeHtml(r.ChildValue)}</td><td>${escapeHtml(r.Difference)}</td><td class="${r.Status==="MATCH"?"compare-ok":"compare-diff"}">${escapeHtml(r.Status)}</td></tr>`).join('')+'</tbody>';
+  $("comparisonCount").textContent=`${comparisonRows.length.toLocaleString()} metric comparisons`;
 }
 function buildSummaries(){
   const allowed=new Set(allRows.map(r=>String(r["Grouping"]||"").trim()+"|||"+r.__date));
@@ -486,13 +637,15 @@ function renderAll(){
   $("kSpeed").textContent=(filteredRows.length?Math.max(...filteredRows.map(r=>r.__speed)):0).toLocaleString(undefined,{maximumFractionDigits:1});
   $("kIdle").textContent=fmtDuration(filteredRows.reduce((s,r)=>s+r.__idleSec,0));
   $("kDistance").textContent=filteredRows.reduce((s,r)=>s+r.__distance,0).toLocaleString(undefined,{maximumFractionDigits:1});
-  const vio=dailyRows.reduce((s,d)=>s+(d.SpeedViolation===true)+(d.IdlingViolation===true)+(d.DistanceViolation===true),0);
+  const vio=dailyRows.reduce((s,d)=>s+(d.SpeedViolation===true)+(d.IdlingViolation===true)+(d.DistanceViolation===true),0)+lowDistanceRows.filter(r=>r.Level==="Daily").length;
   $("kViolations").textContent=vio.toLocaleString();$("kDays").textContent=dailyRows.length.toLocaleString();
 
   renderDaily("dashTable",dailyRows.filter(d=>d.SpeedViolation||d.IdlingViolation||d.DistanceViolation).slice(0,100));
   renderDaily("dailyTable",dailyRows);
   renderGroups();
   renderRaw();
+  renderRankings();
+  renderComparison();
   $("dailyCount").textContent=`${dailyRows.length.toLocaleString()} group-day rows`;
   $("groupCount").textContent=`${groupRows.length.toLocaleString()} groups`;
   $("rawCount").textContent=`${filteredRows.length.toLocaleString()} of ${allRows.length.toLocaleString()} trips`;
@@ -574,8 +727,20 @@ function buildExportFilename(){
 }
 function exportExcel(){
   if(!filteredRows.length){toast("There are no filtered rows to export.",true);return;}
+  updateExportSelectAll();
+  $("exportModal").classList.remove("hidden");
+}
+function updateExportSelectAll(){
+  const boxes=[...document.querySelectorAll(".export-sheet")];
+  $("exportSelectAll").checked=boxes.every(b=>b.checked);
+  $("exportSelectAll").indeterminate=boxes.some(b=>b.checked)&&boxes.some(b=>!b.checked);
+}
+function closeExportModal(){ $("exportModal").classList.add("hidden"); }
+function performExportExcel(){
+  const selected=new Set([...document.querySelectorAll(".export-sheet:checked")].map(b=>b.value));
+  if(!selected.size){toast("Select at least one worksheet to export.",true);return;}
   const dailyLookup=new Map(dailyRows.map(d=>[d.Grouping+"|||"+d.Date,d]));
-  const raw=filteredRows.map(r=>{
+  const raw=[...filteredRows].sort((a,b)=>b.__speed-a.__speed).map(r=>{
     const base=Object.fromEntries(headers.map(h=>[h,r[h]]));
     const d=dailyLookup.get(String(r["Grouping"]||"").trim()+"|||"+r.__date);
     base["Daily Max Speed"]=d?d.MaxSpeed:"";
@@ -586,14 +751,14 @@ function exportExcel(){
     base["Total Distance Violation"]=d?(d.DistanceViolation===null?"N/A":d.DistanceViolation?"VIOLATION":"OK"):"";
     return base;
   });
-  const daily=dailyRows.map(r=>({
+  const daily=[...dailyRows].sort((a,b)=>b.MaxSpeed-a.MaxSpeed).map(r=>({
     Grouping:r.Grouping,Date:displayDate(r.Date),Trips:r.Trips,
     "Daily Max Speed":r.MaxSpeed,"Daily Idling":fmtDuration(r.IdlingSec),"Daily Total Distance":r.Distance,
     "Max Speed Violation":r.SpeedViolation===null?"N/A":r.SpeedViolation?"VIOLATION":"OK",
     "Idling Violation":r.IdlingViolation===null?"N/A":r.IdlingViolation?"VIOLATION":"OK",
     "Total Distance Violation":r.DistanceViolation===null?"N/A":r.DistanceViolation?"VIOLATION":"OK"
   }));
-  const groups=groupRows.map(g=>({
+  const groups=[...groupRows].sort((a,b)=>b.HighestSpeed-a.HighestSpeed).map(g=>({
     Grouping:g.Grouping,
     Dates:getGroupDates(g).join(" | "),
     Days:g.Days,
@@ -611,15 +776,30 @@ function exportExcel(){
     ["Distance Filter (km)",`${$("distOp").value||"None"} ${$("distVal").value}`.trim()],
     ["Max Speed Limit",$("speedLimitOn").checked?$("speedLimit").value+" km/h":"Disabled"],
     ["Idling Limit",$("idleLimitOn").checked?$("idleLimit").value+" minutes":"Disabled"],
-    ["Distance Limit",$("distanceLimitOn").checked?$("distanceLimit").value+" km":"Disabled"],
+    ["High Daily Distance Limit",$("distanceLimitOn").checked?$("distanceLimit").value+" km":"Disabled"],
+    ["Low Distance Threshold",$("lowDistanceOn").checked?$("lowDistanceLimit").value+" km":"Disabled"],
+    ["Parent comparison rule","Flag every non-zero difference; no tolerance"],
     ["Violation Rule",$("violationRule").value==="gte"?"Greater than or equal":"Greater than"]
   ];
   const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(raw),"Filtered Data");
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(daily),"Daily Summary");
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(groups),"Group Summary");
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([["Setting","Value"],...settings]),"Settings");
+  const sheets={
+    "Filtered Data":XLSX.utils.json_to_sheet(raw),
+    "Daily Summary":XLSX.utils.json_to_sheet(daily),
+    "Group Summary":XLSX.utils.json_to_sheet(groups),
+    "Parent Comparison":XLSX.utils.json_to_sheet([...comparisonRows].sort((a,b)=>{
+      const as=String(a.Metric).toLowerCase().includes("speed"),bs=String(b.Metric).toLowerCase().includes("speed");
+      if(as!==bs)return as?-1:1;
+      return (Number(b.ParentValue)||0)-(Number(a.ParentValue)||0);
+    }).map(r=>({Grouping:r.Grouping,"Parent №":r.ParentNo,Metric:r.Metric,"Parent Value":r.ParentValue,"Child-Trip Value":r.ChildValue,"Difference":r.Difference,Status:r.Status}))),
+    "Low Distance Flags":XLSX.utils.json_to_sheet([...lowDistanceRows].sort((a,b)=>a.Distance-b.Distance).map(r=>({Level:r.Level,Grouping:r.Grouping,Date:displayDate(r.Date),Trip:r.Trip,"Distance (km)":r.Distance,"Threshold (km)":r.Threshold}))),
+    "Settings":XLSX.utils.aoa_to_sheet([["Setting","Value"],...settings])
+  };
+  ["Filtered Data","Daily Summary","Group Summary","Parent Comparison","Low Distance Flags","Settings"].forEach(name=>{
+    if(selected.has(name)) XLSX.utils.book_append_sheet(wb,sheets[name],name);
+  });
   XLSX.writeFile(wb,buildExportFilename());
+  closeExportModal();
+  toast(`Exported ${selected.size} worksheet${selected.size===1?"":"s"}, sorted by highest speed where applicable.`);
 }
 function bind(){
   $("fileInput").addEventListener("change",e=>e.target.files[0]&&loadWorkbook(e.target.files[0]));
@@ -629,9 +809,15 @@ function bind(){
   dz.addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f)loadWorkbook(f)});
   dz.addEventListener("click",e=>{if(e.target.closest("button,label"))return;$("fileInput").click()});
   ["dateFrom","dateTo","groupFilter","speedOp","speedVal","idleOp","idleVal","distOp","distVal","searchText",
-   "speedLimitOn","speedLimit","idleLimitOn","idleLimit","distanceLimitOn","distanceLimit","violationRule"]
+   "speedLimitOn","speedLimit","idleLimitOn","idleLimit","distanceLimitOn","distanceLimit","lowDistanceOn","lowDistanceLimit","violationRule"]
    .forEach(id=>$(id).addEventListener(id==="searchText"?"input":"change",applyFilters));
   $("clearFilters").onclick=clearFilters;$("resetBtn").onclick=clearFilters;$("exportBtn").onclick=exportExcel;
+  $("exportSelectAll").addEventListener("change",()=>document.querySelectorAll(".export-sheet").forEach(b=>b.checked=$("exportSelectAll").checked));
+  document.querySelectorAll(".export-sheet").forEach(b=>b.addEventListener("change",updateExportSelectAll));
+  $("cancelExport").onclick=closeExportModal;
+  $("confirmExport").onclick=performExportExcel;
+  $("exportModal").addEventListener("click",e=>{if(e.target===$("exportModal"))closeExportModal();});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape")closeExportModal();});
   document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
     b.classList.add("active");$(b.dataset.tab).classList.add("active");
